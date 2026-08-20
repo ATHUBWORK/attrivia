@@ -143,6 +143,19 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Reset the server and send everyone back to the lobby
+    socket.on('resetServer', () => {
+        gameActive = false;
+        clearTimeout(answerTimer);
+        // Reset player scores but keep them in the lobby
+        for (let id in players) {
+            players[id].score = 0;
+            players[id].answered = false;
+        }
+        io.emit('forceLobby');
+        io.emit('updateLobby', getLeaderboard(), gameActive);
+    });
+
     socket.on('disconnect', () => {
         delete players[socket.id];
         io.emit('updateLobby', getLeaderboard(), gameActive);
@@ -150,4 +163,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Trivia Server running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Trivia Server running on port ${PORT}`));
