@@ -10,14 +10,19 @@
         .player-score { background: #0f3460; padding: 5px 15px; border-radius: 5px; font-weight: bold; }
         .container { max-width: 600px; margin: 50px auto; padding: 20px; background: #16213e; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         h1, h2 { color: #e94560; }
-        input, button { padding: 10px; margin: 10px 0; width: 80%; border-radius: 5px; border: none; font-size: 16px; }
-        button { background: #e94560; color: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        input, button, select { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; }
+        input { width: 60%; }
+        select { width: 20%; cursor: pointer; }
+        button { background: #e94560; color: white; cursor: pointer; font-weight: bold; transition: 0.2s; width: 84%;}
         button:hover { background: #ff5277; }
         button:disabled { background: #555; cursor: not-allowed; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        .option-btn { height: 60px; font-size: 14px; background: #0f3460; }
-        .hidden { display: none; }
+        .option-btn { height: 60px; font-size: 14px; background: #0f3460; width: 100%;}
+        .hidden { display: none !important; }
         #timerBar { height: 10px; background: #e94560; width: 100%; transition: width 0.1s linear; margin-top: 20px; border-radius: 5px; }
+        
+        /* Flexbox to keep input and emoji selector side-by-side */
+        .input-group { display: flex; justify-content: center; gap: 10px; align-items: center; }
     </style>
 </head>
 <body>
@@ -27,9 +32,23 @@
     <!-- Lobby Screen -->
     <div id="lobby" class="container">
         <h1>Speed Trivia</h1>
-        <p>Enter your name to join (Max 25 players)</p>
+        <p>Pick an avatar and enter your name to join (Max 25 players)</p>
         <div id="joinControls">
-            <input type="text" id="playerName" placeholder="Your Name" maxlength="12">
+            <div class="input-group">
+                <select id="playerEmoji">
+                    <option value="😎">😎</option>
+                    <option value="🦊">🦊</option>
+                    <option value="👽">👽</option>
+                    <option value="🤖">🤖</option>
+                    <option value="🚀">🚀</option>
+                    <option value="🦄">🦄</option>
+                    <option value="🦖">🦖</option>
+                    <option value="🏎️">🏎️</option>
+                    <option value="🎬">🎬</option>
+                    <option value="💩">💩</option>
+                </select>
+                <input type="text" id="playerName" placeholder="Your Name" maxlength="12">
+            </div>
             <button id="joinBtn" onclick="joinGame()">Join Lobby</button>
         </div>
         <div id="waitingMsg" class="hidden">
@@ -40,6 +59,7 @@
 
     <!-- Game Screen -->
     <div id="gameArea" class="container hidden">
+        <h1 id="countdownText" class="hidden" style="font-size: 6rem; margin: 20px 0; color: #ffaa00;">3</h1>
         <h2 id="questionNumber"></h2>
         <h3 id="questionText">Waiting for question...</h3>
         <div id="timerBar"></div>
@@ -62,22 +82,27 @@
             const lb = document.getElementById('leaderboard');
             lb.innerHTML = '';
             players.forEach(p => {
-                lb.innerHTML += `<div class="player-score">${p.name}: ${p.score}</div>`;
+                // Now includes the emoji!
+                lb.innerHTML += `<div class="player-score">${p.emoji} ${p.name}: ${p.score}</div>`;
             });
         }
 
         function joinGame() {
             const nameInput = document.getElementById('playerName');
+            const emojiInput = document.getElementById('playerEmoji');
             const btn = document.getElementById('joinBtn');
             const name = nameInput.value;
+            const emoji = emojiInput.value;
             
             if (name.trim() !== '') {
-                socket.emit('joinGame', name);
+                // Send an object containing both values
+                socket.emit('joinGame', { name: name, emoji: emoji });
                 
-                // Grey out the button and input
+                // Grey out the inputs
                 btn.disabled = true;
                 btn.innerText = 'Joined!';
                 nameInput.disabled = true;
+                emojiInput.disabled = true;
                 
                 // Show the warning text
                 document.getElementById('waitingMsg').classList.remove('hidden');
@@ -94,7 +119,39 @@
             document.getElementById('gameArea').classList.remove('hidden');
         });
 
+        socket.on('startCountdown', () => {
+            // Hide normal game elements during the countdown
+            document.getElementById('optionsGrid').classList.add('hidden');
+            document.getElementById('timerBar').classList.add('hidden');
+            document.getElementById('questionNumber').classList.add('hidden');
+            document.getElementById('feedback').innerText = '';
+            
+            document.getElementById('questionText').innerText = "Get Ready...";
+            
+            let cdText = document.getElementById('countdownText');
+            cdText.classList.remove('hidden');
+            
+            let count = 3;
+            cdText.innerText = count;
+            
+            let interval = setInterval(() => {
+                count--;
+                if(count > 0) {
+                    cdText.innerText = count;
+                } else {
+                    clearInterval(interval);
+                    // The server will emit 'newQuestion' right after this finishes
+                }
+            }, 1000);
+        });
+
         socket.on('newQuestion', (data) => {
+            // Unhide the game elements and hide the countdown text
+            document.getElementById('countdownText').classList.add('hidden');
+            document.getElementById('optionsGrid').classList.remove('hidden');
+            document.getElementById('timerBar').classList.remove('hidden');
+            document.getElementById('questionNumber').classList.remove('hidden');
+
             document.getElementById('questionNumber').innerText = `Question ${data.questionNumber} of 10`;
             document.getElementById('questionText').innerText = data.question;
             document.getElementById('feedback').innerText = '';
@@ -131,13 +188,14 @@
             document.getElementById('gameArea').classList.add('hidden');
             document.getElementById('gameOver').classList.remove('hidden');
             if (players.length > 0) {
-                document.getElementById('winnerName').innerText = `Winner: ${players[0].name} with ${players[0].score} points!`;
+                document.getElementById('winnerName').innerText = `Winner: ${players[0].emoji} ${players[0].name} with ${players[0].score} points!`;
             }
         });
 
         socket.on('forceLobby', () => {
             document.getElementById('gameArea').classList.add('hidden');
             document.getElementById('gameOver').classList.add('hidden');
+            document.getElementById('countdownText').classList.add('hidden');
             document.getElementById('lobby').classList.remove('hidden');
             
             // Reset visual timer bar
