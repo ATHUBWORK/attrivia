@@ -8,8 +8,9 @@
         body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 50px; }
         .container { max-width: 500px; margin: auto; padding: 30px; background: #16213e; border-radius: 10px; border: 2px solid #e94560; }
         select, button { padding: 15px; margin: 15px 0; width: 90%; font-size: 18px; border-radius: 5px; }
-        button { background: #e94560; color: white; font-weight: bold; cursor: pointer; border: none; }
-        button:hover { background: #ff5277; }
+        .launch-btn { background: #e94560; color: white; font-weight: bold; cursor: pointer; border: none; }
+        .launch-btn:hover { background: #ff5277; }
+        .reset-btn { background: #ffaa00; color: #1a1a2e; font-weight: bold; cursor: pointer; border: none; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -23,17 +24,28 @@
             <option value="Car">Car Trivia</option>
             <option value="Movie">Movie Trivia</option>
         </select>
-        
-        <button onclick="startGame()">Launch Game Now</button>
+        <button class="launch-btn" onclick="startGame()">Launch Game Now</button>
+
+        <hr style="border-color: #0f3460; margin: 30px 0;">
+
+        <button class="reset-btn" onclick="resetGame()">End Game & Return to Lobby</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        
         function startGame() {
             const cat = document.getElementById('categorySelect').value;
             socket.emit('startGame', cat);
-            alert('Game Launched! You can watch the main screen.');
+            alert('Game Launched!');
+        }
+
+        function resetGame() {
+            if(confirm("Are you sure you want to end the current game and reset the lobby?")) {
+                socket.emit('resetServer');
+                alert('Game reset. All players sent back to lobby.');
+            }
         }
     </script>
 </body>
