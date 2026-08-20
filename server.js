@@ -8,7 +8,7 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// Backup Trivia Database (Used for Food, or if the API fails)
+// Backup Trivia Database (Used ONLY if the API fails)
 const triviaDB = {
     Sports: [
         { q: "Who is the only athlete to play in both a Super Bowl and a World Series?", a: "Deion Sanders", options: ["Deion Sanders", "Bo Jackson", "Michael Jordan", "Jim Brown"] },
@@ -17,17 +17,12 @@ const triviaDB = {
         { q: "What is the distance of a marathon in miles?", a: "26.2", options: ["26.2", "24.5", "28.1", "20.0"] },
         { q: "Who holds the record for the most Olympic gold medals?", a: "Michael Phelps", options: ["Michael Phelps", "Usain Bolt", "Carl Lewis", "Mark Spitz"] }
     ],
-    Food: [
-        { q: "What is the main ingredient in hummus?", a: "Chickpeas", options: ["Chickpeas", "Lentils", "Black Beans", "Edamame"] },
-        { q: "Saffron comes from which type of flower?", a: "Crocus", options: ["Crocus", "Rose", "Orchid", "Tulip"] },
-        { q: "Which country is the origin of the cocktail Mojito?", a: "Cuba", options: ["Cuba", "Mexico", "Puerto Rico", "Spain"] },
-        { q: "What type of pasta has a name meaning 'little worms'?", a: "Vermicelli", options: ["Vermicelli", "Linguine", "Orzo", "Farfalle"] },
-        { q: "Escargot is a dish made from what animal?", a: "Snail", options: ["Snail", "Octopus", "Frog", "Clam"] },
-        { q: "What is the primary ingredient in guacamole?", a: "Avocado", options: ["Avocado", "Tomato", "Lime", "Jalapeno"] },
-        { q: "What cheese is traditionally used on a Margherita pizza?", a: "Mozzarella", options: ["Mozzarella", "Provolone", "Parmesan", "Ricotta"] },
-        { q: "A traditional Japanese miso soup is made using a paste of fermented what?", a: "Soybeans", options: ["Soybeans", "Rice", "Seaweed", "Fish"] },
-        { q: "Which nut is used to make marzipan?", a: "Almond", options: ["Almond", "Walnut", "Pecan", "Cashew"] },
-        { q: "What is the most expensive spice in the world by weight?", a: "Saffron", options: ["Saffron", "Vanilla", "Cardamom", "Cinnamon"] }
+    Animals: [
+        { q: "What is the fastest land animal?", a: "Cheetah", options: ["Cheetah", "Lion", "Horse", "Ostrich"] },
+        { q: "What is the largest mammal in the world?", a: "Blue Whale", options: ["Blue Whale", "Elephant", "Giraffe", "Orca"] },
+        { q: "A group of crows is called what?", a: "A Murder", options: ["A Murder", "A Flock", "A Pack", "A Gaggle"] },
+        { q: "How many legs does a spider have?", a: "8", options: ["8", "6", "10", "12"] },
+        { q: "What is the only mammal capable of true sustained flight?", a: "Bat", options: ["Bat", "Flying Squirrel", "Lemur", "Sugar Glider"] }
     ],
     Car: [
         { q: "What was the first mass-produced car?", a: "Ford Model T", options: ["Ford Model T", "Volkswagen Beetle", "Chevrolet Bel Air", "Honda Civic"] },
@@ -62,7 +57,7 @@ function getLeaderboard() {
     return Object.values(players).sort((a, b) => b.score - a.score);
 }
 
-// Helper function to clean weird API formatting like &quot; or &#039;
+// Helper function to clean weird API formatting
 function decodeHTML(text) {
     return text.replace(/&quot;/g, '"')
                .replace(/&#039;/g, "'")
@@ -119,40 +114,34 @@ io.on('connection', (socket) => {
         if (gameActive) return;
         gameActive = true;
         
-        // Let players know the server is working on loading the questions
         io.emit('gameStarted'); 
 
         let questions = [];
 
         try {
-            if (category === 'Food') {
-                // Use local fallback for food since OpenTDB lacks a specific food category
-                questions = shuffleArray([...triviaDB['Food']]).slice(0, 10);
+            // Map ALL categories to OpenTDB API ID numbers
+            const categoryIds = { 'Sports': 21, 'Car': 28, 'Movie': 11, 'Animals': 27 };
+            const apiId = categoryIds[category];
+            
+            // Fetch 10 random, medium difficulty, multiple choice questions
+            const response = await fetch(`https://opentdb.com/api.php?amount=10&category=${apiId}&difficulty=medium&type=multiple`);
+            const apiData = await response.json();
+
+            if (apiData.results && apiData.results.length > 0) {
+                questions = apiData.results.map(q => {
+                    let decodedQ = decodeHTML(q.question);
+                    let decodedA = decodeHTML(q.correct_answer);
+                    let options = q.incorrect_answers.map(opt => decodeHTML(opt));
+                    options.push(decodedA);
+
+                    return { q: decodedQ, a: decodedA, options: options };
+                });
             } else {
-                // Map the categories to OpenTDB API ID numbers
-                const categoryIds = { 'Sports': 21, 'Car': 28, 'Movie': 11 };
-                const apiId = categoryIds[category];
-                
-                // Fetch 10 random, medium difficulty, multiple choice questions
-                const response = await fetch(`https://opentdb.com/api.php?amount=10&category=${apiId}&difficulty=medium&type=multiple`);
-                const apiData = await response.json();
-
-                if (apiData.results && apiData.results.length > 0) {
-                    questions = apiData.results.map(q => {
-                        let decodedQ = decodeHTML(q.question);
-                        let decodedA = decodeHTML(q.correct_answer);
-                        let options = q.incorrect_answers.map(opt => decodeHTML(opt));
-                        options.push(decodedA);
-
-                        return { q: decodedQ, a: decodedA, options: options };
-                    });
-                } else {
-                    throw new Error("API returned empty data.");
-                }
+                throw new Error("API returned empty data.");
             }
         } catch (error) {
             console.log("API Error - Falling back to local backup questions.", error);
-            questions = shuffleArray([...triviaDB[category]]).slice(0, 10);
+            questions = shuffleArray([...triviaDB[category]]).slice(0, 10); // Uses local backup if API fails
         }
 
         currentQIndex = 0;
