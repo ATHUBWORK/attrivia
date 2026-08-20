@@ -110,9 +110,15 @@ io.on('connection', (socket) => {
         return;
     }
 
-    socket.on('joinGame', (name) => {
+    // Now accepts an object with both name and emoji
+    socket.on('joinGame', (playerData) => {
         if (gameActive) return socket.emit('errorMsg', 'Game in progress.');
-        players[socket.id] = { name: name || 'Player', score: 0, answered: false };
+        players[socket.id] = { 
+            name: playerData.name || 'Player', 
+            emoji: playerData.emoji || '😎', 
+            score: 0, 
+            answered: false 
+        };
         io.emit('updateLobby', getLeaderboard(), gameActive);
     });
 
@@ -126,7 +132,12 @@ io.on('connection', (socket) => {
         for (let id in players) players[id].score = 0;
         
         io.emit('gameStarted');
-        nextQuestion();
+        io.emit('startCountdown');
+        
+        // Wait 3 seconds for the countdown before showing the first question
+        setTimeout(() => {
+            nextQuestion();
+        }, 3000);
     });
 
     socket.on('submitAnswer', (answer) => {
@@ -143,7 +154,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Reset the server and send everyone back to the lobby
     socket.on('resetServer', () => {
         gameActive = false;
         clearTimeout(answerTimer);
