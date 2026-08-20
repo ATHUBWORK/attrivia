@@ -24,23 +24,15 @@
 
     <div id="leaderboard"></div>
 
-    <!-- Lobby Screen -->
+<!-- Lobby Screen -->
     <div id="lobby" class="container">
         <h1>Speed Trivia</h1>
         <p>Enter your name to join (Max 25 players)</p>
-        <input type="text" id="playerName" placeholder="Your Name" maxlength="12">
-        <button onclick="joinGame()">Join Lobby</button>
-        
-        <hr style="border-color: #0f3460; margin: 20px 0;">
-        
-        <h2>Start Game</h2>
-        <select id="categorySelect">
-            <option value="Sports">Sports Trivia</option>
-            <option value="Food">Food Trivia</option>
-            <option value="Car">Car Trivia</option>
-            <option value="Movie">Movie Trivia</option>
-        </select>
-        <button onclick="startGame()">Start Game</button>
+        <div id="joinControls">
+            <input type="text" id="playerName" placeholder="Your Name" maxlength="12">
+            <button onclick="joinGame()">Join Lobby</button>
+        </div>
+        <h3 id="waitingMsg" class="hidden" style="color: #e94560;">You are in! Waiting for the host to start the game...</h3>
     </div>
 
     <!-- Game Screen -->

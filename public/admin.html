@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Admin Console</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 50px; }
+        .container { max-width: 500px; margin: auto; padding: 30px; background: #16213e; border-radius: 10px; border: 2px solid #e94560; }
+        select, button { padding: 15px; margin: 15px 0; width: 90%; font-size: 18px; border-radius: 5px; }
+        button { background: #e94560; color: white; font-weight: bold; cursor: pointer; border: none; }
+        button:hover { background: #ff5277; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Control Panel</h1>
+        <p>Wait for all players to appear on the leaderboard, then launch the game.</p>
+        
+        <select id="categorySelect">
+            <option value="Sports">Sports Trivia</option>
+            <option value="Food">Food Trivia</option>
+            <option value="Car">Car Trivia</option>
+            <option value="Movie">Movie Trivia</option>
+        </select>
+        
+        <button onclick="startGame()">Launch Game Now</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        function startGame() {
+            const cat = document.getElementById('categorySelect').value;
+            socket.emit('startGame', cat);
+            alert('Game Launched! You can watch the main screen.');
+        }
+    </script>
+</body>
+</html>
