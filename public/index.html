@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Trivia 25</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: white; margin: 0; padding: 0; text-align: center; }
+        #leaderboard { background: #16213e; padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; border-bottom: 3px solid #e94560; position: sticky; top: 0; z-index: 100;}
+        .player-score { background: #0f3460; padding: 5px 15px; border-radius: 5px; font-weight: bold; }
+        .container { max-width: 600px; margin: 50px auto; padding: 20px; background: #16213e; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1, h2 { color: #e94560; }
+        input, select, button { padding: 10px; margin: 10px 0; width: 80%; border-radius: 5px; border: none; font-size: 16px; }
+        button { background: #e94560; color: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #ff5277; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .option-btn { height: 60px; font-size: 14px; background: #0f3460; }
+        .hidden { display: none; }
+        #timerBar { height: 10px; background: #e94560; width: 100%; transition: width 0.1s linear; margin-top: 20px; border-radius: 5px;}
+    </style>
+</head>
+<body>
+
+    <div id="leaderboard"></div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby" class="container">
+        <h1>Speed Trivia</h1>
+        <p>Enter your name to join (Max 25 players)</p>
+        <input type="text" id="playerName" placeholder="Your Name" maxlength="12">
+        <button onclick="joinGame()">Join Lobby</button>
+        
+        <hr style="border-color: #0f3460; margin: 20px 0;">
+        
+        <h2>Start Game</h2>
+        <select id="categorySelect">
+            <option value="Sports">Sports Trivia</option>
+            <option value="Food">Food Trivia</option>
+            <option value="Car">Car Trivia</option>
+            <option value="Movie">Movie Trivia</option>
+        </select>
+        <button onclick="startGame()">Start Game</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameArea" class="container hidden">
+        <h2 id="questionNumber"></h2>
+        <h3 id="questionText">Waiting for question...</h3>
+        <div id="timerBar"></div>
+        <div class="grid" id="optionsGrid"></div>
+        <p id="feedback" style="margin-top: 20px; font-weight: bold; font-size: 1.2em;"></p>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOver" class="container hidden">
+        <h1>Game Over!</h1>
+        <h2 id="winnerName"></h2>
+        <button onclick="location.reload()">Back to Lobby</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let myScore = 0;
+
+        function updateLeaderboard(players) {
+            const lb = document.getElementById('leaderboard');
+            lb.innerHTML = '';
+            players.forEach(p => {
+                lb.innerHTML += `<div class="player-score">${p.name}: ${p.score}</div>`;
+            });
+        }
+
+        function joinGame() {
+            const name = document.getElementById('playerName').value;
+            if(name.trim() !== '') socket.emit('joinGame', name);
+        }
+
+        function startGame() {
+            const cat = document.getElementById('categorySelect').value;
+            socket.emit('startGame', cat);
+        }
+
+        socket.on('updateLobby', (players, isActive) => {
+            updateLeaderboard(players);
+        });
+
+        socket.on('gameStarted', () => {
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('gameArea').classList.remove('hidden');
+        });
+
+        socket.on('newQuestion', (data) => {
+            document.getElementById('questionNumber').innerText = `Question ${data.questionNumber} of 10`;
+            document.getElementById('questionText').innerText = data.question;
+            document.getElementById('feedback').innerText = '';
+            
+            const grid = document.getElementById('optionsGrid');
+            grid.innerHTML = '';
+            data.options.forEach(opt => {
+                grid.innerHTML += `<button class="option-btn" onclick="submitAnswer(this, '${opt.replace(/'/g, "\\'")}')">${opt}</button>`;
+            });
+
+            // Start visual timer
+            let bar = document.getElementById('timerBar');
+            bar.style.width = '100%';
+            bar.style.transition = 'none';
+            setTimeout(() => {
+                bar.style.transition = 'width 10s linear';
+                bar.style.width = '0%';
+            }, 50);
+        });
+
+        function submitAnswer(btn, answer) {
+            socket.emit('submitAnswer', answer);
+            let buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+            btn.style.background = '#e94560'; // Highlight selection
+        }
+
+        socket.on('showAnswer', (data) => {
+            document.getElementById('feedback').innerText = `Time's up! Correct Answer: ${data.correctAnswer}`;
+            updateLeaderboard(data.leaderboard);
+        });
+
+        socket.on('gameOver', (players) => {
+            document.getElementById('gameArea').classList.add('hidden');
+            document.getElementById('gameOver').classList.remove('hidden');
+            if(players.length > 0) {
+                document.getElementById('winnerName').innerText = `Winner: ${players[0].name} with ${players[0].score} points!`;
+            }
+        });
+
+        socket.on('errorMsg', (msg) => alert(msg));
+    </script>
+</body>
+</html>
