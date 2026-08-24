@@ -5,19 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trivia Admin Console</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 50px; }
-        .container { max-width: 500px; margin: auto; padding: 30px; background: #16213e; border-radius: 10px; border: 2px solid #e94560; }
-        select, button { padding: 15px; margin: 15px 0; width: 90%; font-size: 18px; border-radius: 5px; }
-        .launch-btn { background: #e94560; color: white; font-weight: bold; cursor: pointer; border: none; }
-        .launch-btn:hover { background: #ff5277; }
+        :root {
+            --bg-main: #1a1a2e;
+            --bg-panel: #16213e;
+            --accent: #e94560;
+            --accent-hover: #ff5277;
+            --text-main: white;
+            --bg-btn: #0f3460;
+            --text-input: black;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: var(--text-main); text-align: center; padding: 20px; transition: 0.5s; }
+        .container { max-width: 500px; margin: auto; padding: 30px; background: var(--bg-panel); border-radius: 10px; border: 2px solid var(--accent); transition: 0.5s; }
+        select, button { padding: 15px; margin: 15px 0; width: 90%; font-size: 18px; border-radius: 5px; color: var(--text-input); }
+        .launch-btn { background: var(--accent); color: white; font-weight: bold; cursor: pointer; border: none; }
+        .launch-btn:hover { background: var(--accent-hover); }
         .reset-btn { background: #ffaa00; color: #1a1a2e; font-weight: bold; cursor: pointer; border: none; margin-top: 30px; }
+        
+        #leaderboard { background: var(--bg-panel); padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; border-bottom: 3px solid var(--accent); margin-bottom: 20px; border-radius: 10px; transition: 0.5s;}
+        .player-score { background: var(--bg-btn); padding: 5px 15px; border-radius: 5px; font-weight: bold; color: var(--text-main); transition: 0.5s;}
     </style>
 </head>
 <body>
+    <div id="leaderboard"><em>Waiting for players...</em></div>
+
     <div class="container">
-        <h1>Admin Control Panel</h1>
-        <p>Wait for all players to appear on the leaderboard, then launch the game.</p>
+        <h1 style="color: var(--accent);">Admin Control Panel</h1>
         
+        <select id="themeSelect" onchange="changeTheme()">
+            <option value="default">Theme: Dark Mode (Default)</option>
+            <option value="hacker">Theme: Hacker (Neon Green)</option>
+            <option value="light">Theme: Light Mode (Bright)</option>
+        </select>
+        
+        <hr style="border-color: var(--bg-btn); margin: 20px 0;">
+
         <select id="categorySelect">
             <option value="Sports">Sports Trivia</option>
             <option value="Animals">Animal Trivia</option>
@@ -26,7 +48,7 @@
         </select>
         <button class="launch-btn" onclick="startGame()">Launch Game Now</button>
 
-        <hr style="border-color: #0f3460; margin: 30px 0;">
+        <hr style="border-color: var(--bg-btn); margin: 30px 0;">
 
         <button class="reset-btn" onclick="resetGame()">End Game & Return to Lobby</button>
     </div>
@@ -34,17 +56,51 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+
+        const themes = {
+            default: { '--bg-main': '#1a1a2e', '--bg-panel': '#16213e', '--accent': '#e94560', '--accent-hover': '#ff5277', '--text-main': 'white', '--bg-btn': '#0f3460', '--text-input': 'black' },
+            hacker: { '--bg-main': '#0a0a0a', '--bg-panel': '#111111', '--accent': '#00ff00', '--accent-hover': '#33ff33', '--text-main': '#00ff00', '--bg-btn': '#003300', '--text-input': '#00ff00' },
+            light: { '--bg-main': '#f0f0f0', '--bg-panel': '#ffffff', '--accent': '#0055ff', '--accent-hover': '#3377ff', '--text-main': '#333333', '--bg-btn': '#e0e0e0', '--text-input': 'black' }
+        };
+
+        socket.on('setTheme', (themeName) => {
+            document.getElementById('themeSelect').value = themeName;
+            const theme = themes[themeName];
+            if (theme) {
+                for (let key in theme) {
+                    document.documentElement.style.setProperty(key, theme[key]);
+                }
+            }
+        });
+
+        function changeTheme() {
+            const selectedTheme = document.getElementById('themeSelect').value;
+            socket.emit('changeTheme', selectedTheme);
+        }
+
+        function updateLeaderboard(players) {
+            const lb = document.getElementById('leaderboard');
+            if (players.length === 0) {
+                lb.innerHTML = '<em>Waiting for players...</em>';
+                return;
+            }
+            lb.innerHTML = '';
+            players.forEach(p => {
+                lb.innerHTML += `<div class="player-score">${p.emoji} ${p.name}: ${p.score}</div>`;
+            });
+        }
+
+        socket.on('updateLobby', (players) => updateLeaderboard(players));
+        socket.on('showAnswer', (data) => updateLeaderboard(data.leaderboard));
         
         function startGame() {
             const cat = document.getElementById('categorySelect').value;
             socket.emit('startGame', cat);
-            alert('Game Launched!');
         }
 
         function resetGame() {
             if(confirm("Are you sure you want to end the current game and reset the lobby?")) {
                 socket.emit('resetServer');
-                alert('Game reset. All players sent back to lobby.');
             }
         }
     </script>
