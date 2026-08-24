@@ -8,7 +8,6 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// Backup Trivia Database (Used ONLY if the API fails)
 const triviaDB = {
     Sports: [
         { q: "Who is the only athlete to play in both a Super Bowl and a World Series?", a: "Deion Sanders", options: ["Deion Sanders", "Bo Jackson", "Michael Jordan", "Jim Brown"] },
@@ -47,7 +46,8 @@ let currentQuestions = [];
 let currentQIndex = 0;
 let questionStartTime = 0;
 let answerTimer = null;
-const TIME_LIMIT = 10000; // 10 seconds per question
+let currentTheme = 'default';
+const TIME_LIMIT = 10000; 
 
 function shuffleArray(array) {
     return array.sort(() => Math.random() - 0.5);
@@ -57,7 +57,6 @@ function getLeaderboard() {
     return Object.values(players).sort((a, b) => b.score - a.score);
 }
 
-// Helper function to clean weird API formatting
 function decodeHTML(text) {
     return text.replace(/&quot;/g, '"')
                .replace(/&#039;/g, "'")
@@ -94,6 +93,8 @@ function nextQuestion() {
 }
 
 io.on('connection', (socket) => {
+    socket.emit('setTheme', currentTheme); // Send current theme to new connections
+
     if (Object.keys(players).length >= 25) {
         socket.emit('errorMsg', 'Lobby is full (Max 25 players).');
         return;
@@ -119,11 +120,8 @@ io.on('connection', (socket) => {
         let questions = [];
 
         try {
-            // Map ALL categories to OpenTDB API ID numbers
             const categoryIds = { 'Sports': 21, 'Car': 28, 'Movie': 11, 'Animals': 27 };
             const apiId = categoryIds[category];
-            
-            // Fetch 10 random, medium difficulty, multiple choice questions
             const response = await fetch(`https://opentdb.com/api.php?amount=10&category=${apiId}&difficulty=medium&type=multiple`);
             const apiData = await response.json();
 
@@ -133,7 +131,6 @@ io.on('connection', (socket) => {
                     let decodedA = decodeHTML(q.correct_answer);
                     let options = q.incorrect_answers.map(opt => decodeHTML(opt));
                     options.push(decodedA);
-
                     return { q: decodedQ, a: decodedA, options: options };
                 });
             } else {
@@ -141,7 +138,7 @@ io.on('connection', (socket) => {
             }
         } catch (error) {
             console.log("API Error - Falling back to local backup questions.", error);
-            questions = shuffleArray([...triviaDB[category]]).slice(0, 10); // Uses local backup if API fails
+            questions = shuffleArray([...triviaDB[category]]).slice(0, 10); 
         }
 
         currentQIndex = 0;
@@ -153,7 +150,7 @@ io.on('connection', (socket) => {
         
         setTimeout(() => {
             nextQuestion();
-        }, 3000);
+        }, 5000); // Updated to 5 seconds
     });
 
     socket.on('submitAnswer', (answer) => {
@@ -168,6 +165,11 @@ io.on('connection', (socket) => {
             let timeScore = Math.max(10, 1000 - Math.floor(timeTaken / 10)); 
             player.score += timeScore;
         }
+    });
+
+    socket.on('changeTheme', (themeName) => {
+        currentTheme = themeName;
+        io.emit('setTheme', themeName);
     });
 
     socket.on('resetServer', () => {
