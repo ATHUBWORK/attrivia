@@ -5,23 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Speed Trivia 25</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: white; margin: 0; padding: 0; text-align: center; }
-        #leaderboard { background: #16213e; padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; border-bottom: 3px solid #e94560; position: sticky; top: 0; z-index: 100; min-height: 25px; }
-        .player-score { background: #0f3460; padding: 5px 15px; border-radius: 5px; font-weight: bold; }
-        .container { max-width: 600px; margin: 50px auto; padding: 20px; background: #16213e; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h1, h2 { color: #e94560; }
-        input, button, select { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; }
+        :root {
+            --bg-main: #1a1a2e;
+            --bg-panel: #16213e;
+            --accent: #e94560;
+            --accent-hover: #ff5277;
+            --text-main: white;
+            --bg-btn: #0f3460;
+            --text-input: black;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; text-align: center; transition: background 0.5s; }
+        #leaderboard { background: var(--bg-panel); padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; border-bottom: 3px solid var(--accent); position: sticky; top: 0; z-index: 100; min-height: 25px; transition: 0.5s; }
+        .player-score { background: var(--bg-btn); padding: 5px 15px; border-radius: 5px; font-weight: bold; color: var(--text-main); transition: 0.5s; }
+        .container { max-width: 600px; margin: 50px auto; padding: 20px; background: var(--bg-panel); border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: 0.5s; }
+        h1, h2 { color: var(--accent); transition: 0.5s; }
+        input, button, select { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; color: var(--text-input); }
         input { width: 60%; }
         select { width: 20%; cursor: pointer; }
-        button { background: #e94560; color: white; cursor: pointer; font-weight: bold; transition: 0.2s; width: 84%;}
-        button:hover { background: #ff5277; }
-        button:disabled { background: #555; cursor: not-allowed; }
+        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; transition: 0.2s; width: 84%; }
+        button:hover { background: var(--accent-hover); }
+        button:disabled { background: #555; cursor: not-allowed; color: white; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        .option-btn { height: 60px; font-size: 14px; background: #0f3460; width: 100%;}
+        .option-btn { height: 60px; font-size: 14px; background: var(--bg-btn); color: var(--text-main); width: 100%; transition: 0.2s; }
         .hidden { display: none !important; }
-        #timerBar { height: 10px; background: #e94560; width: 100%; transition: width 0.1s linear; margin-top: 20px; border-radius: 5px; }
-        
-        /* Flexbox to keep input and emoji selector side-by-side */
+        #timerBar { height: 10px; background: var(--accent); width: 100%; transition: width 0.1s linear; margin-top: 20px; border-radius: 5px; }
         .input-group { display: flex; justify-content: center; gap: 10px; align-items: center; }
     </style>
 </head>
@@ -29,10 +37,9 @@
 
     <div id="leaderboard"></div>
 
-    <!-- Lobby Screen -->
     <div id="lobby" class="container">
         <h1>Speed Trivia</h1>
-        <p>Pick an avatar and enter your name to join</p>
+        <p>Pick an avatar and enter your name to join (Max 25 players)</p>
         <div id="joinControls">
             <div class="input-group">
                 <select id="playerEmoji">
@@ -52,14 +59,13 @@
             <button id="joinBtn" onclick="joinGame()">Join Lobby</button>
         </div>
         <div id="waitingMsg" class="hidden">
-            <h3 style="color: #e94560;">You are in! Waiting for the host to start the game...</h3>
-            <h2 style="color: #ff5277; background: #0f3460; padding: 10px; border-radius: 5px;">⚠️ DO NOT REFRESH OR CLOSE YOUR BROWSER ⚠️</h2>
+            <h3 style="color: var(--accent);">You are in! Waiting for the host to start the game...</h3>
+            <h2 style="color: var(--accent-hover); background: var(--bg-btn); padding: 10px; border-radius: 5px;">⚠️ DO NOT REFRESH OR CLOSE YOUR BROWSER ⚠️</h2>
         </div>
     </div>
 
-    <!-- Game Screen -->
     <div id="gameArea" class="container hidden">
-        <h1 id="countdownText" class="hidden" style="font-size: 6rem; margin: 20px 0; color: #ffaa00;">3</h1>
+        <h1 id="countdownText" class="hidden" style="font-size: 6rem; margin: 20px 0; color: var(--text-main);">5</h1>
         <h2 id="questionNumber"></h2>
         <h3 id="questionText">Waiting for question...</h3>
         <div id="timerBar"></div>
@@ -67,7 +73,6 @@
         <p id="feedback" style="margin-top: 20px; font-weight: bold; font-size: 1.2em;"></p>
     </div>
 
-    <!-- Game Over Screen -->
     <div id="gameOver" class="container hidden">
         <h1>Game Over!</h1>
         <h2 id="winnerName"></h2>
@@ -78,11 +83,26 @@
     <script>
         const socket = io();
 
+        // Theme definitions
+        const themes = {
+            default: { '--bg-main': '#1a1a2e', '--bg-panel': '#16213e', '--accent': '#e94560', '--accent-hover': '#ff5277', '--text-main': 'white', '--bg-btn': '#0f3460', '--text-input': 'black' },
+            hacker: { '--bg-main': '#0a0a0a', '--bg-panel': '#111111', '--accent': '#00ff00', '--accent-hover': '#33ff33', '--text-main': '#00ff00', '--bg-btn': '#003300', '--text-input': '#00ff00' },
+            light: { '--bg-main': '#f0f0f0', '--bg-panel': '#ffffff', '--accent': '#0055ff', '--accent-hover': '#3377ff', '--text-main': '#333333', '--bg-btn': '#e0e0e0', '--text-input': 'black' }
+        };
+
+        socket.on('setTheme', (themeName) => {
+            const theme = themes[themeName];
+            if (theme) {
+                for (let key in theme) {
+                    document.documentElement.style.setProperty(key, theme[key]);
+                }
+            }
+        });
+
         function updateLeaderboard(players) {
             const lb = document.getElementById('leaderboard');
             lb.innerHTML = '';
             players.forEach(p => {
-                // Now includes the emoji!
                 lb.innerHTML += `<div class="player-score">${p.emoji} ${p.name}: ${p.score}</div>`;
             });
         }
@@ -95,23 +115,16 @@
             const emoji = emojiInput.value;
             
             if (name.trim() !== '') {
-                // Send an object containing both values
                 socket.emit('joinGame', { name: name, emoji: emoji });
-                
-                // Grey out the inputs
                 btn.disabled = true;
                 btn.innerText = 'Joined!';
                 nameInput.disabled = true;
                 emojiInput.disabled = true;
-                
-                // Show the warning text
                 document.getElementById('waitingMsg').classList.remove('hidden');
             }
         }
 
-        socket.on('updateLobby', (players, isActive) => {
-            updateLeaderboard(players);
-        });
+        socket.on('updateLobby', (players, isActive) => { updateLeaderboard(players); });
 
         socket.on('gameStarted', () => {
             document.getElementById('lobby').classList.add('hidden');
@@ -120,18 +133,16 @@
         });
 
         socket.on('startCountdown', () => {
-            // Hide normal game elements during the countdown
             document.getElementById('optionsGrid').classList.add('hidden');
             document.getElementById('timerBar').classList.add('hidden');
             document.getElementById('questionNumber').classList.add('hidden');
             document.getElementById('feedback').innerText = '';
-            
             document.getElementById('questionText').innerText = "Get Ready...";
             
             let cdText = document.getElementById('countdownText');
             cdText.classList.remove('hidden');
             
-            let count = 3;
+            let count = 5;
             cdText.innerText = count;
             
             let interval = setInterval(() => {
@@ -140,13 +151,11 @@
                     cdText.innerText = count;
                 } else {
                     clearInterval(interval);
-                    // The server will emit 'newQuestion' right after this finishes
                 }
             }, 1000);
         });
 
         socket.on('newQuestion', (data) => {
-            // Unhide the game elements and hide the countdown text
             document.getElementById('countdownText').classList.add('hidden');
             document.getElementById('optionsGrid').classList.remove('hidden');
             document.getElementById('timerBar').classList.remove('hidden');
@@ -162,7 +171,6 @@
                 grid.innerHTML += `<button class="option-btn" onclick="submitAnswer(this, '${opt.replace(/'/g, "\\'")}')">${opt}</button>`;
             });
 
-            // Start visual timer
             let bar = document.getElementById('timerBar');
             bar.style.width = '100%';
             bar.style.transition = 'none';
@@ -176,7 +184,7 @@
             socket.emit('submitAnswer', answer);
             let buttons = document.querySelectorAll('.option-btn');
             buttons.forEach(b => b.disabled = true);
-            btn.style.background = '#e94560'; // Highlight selection
+            btn.style.background = 'var(--accent)'; 
         }
 
         socket.on('showAnswer', (data) => {
@@ -197,8 +205,6 @@
             document.getElementById('gameOver').classList.add('hidden');
             document.getElementById('countdownText').classList.add('hidden');
             document.getElementById('lobby').classList.remove('hidden');
-            
-            // Reset visual timer bar
             let bar = document.getElementById('timerBar');
             bar.style.transition = 'none';
             bar.style.width = '100%';
