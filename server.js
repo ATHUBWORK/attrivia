@@ -44,7 +44,12 @@ let gameActive = false;
 let currentQuestions = [];
 let currentQIndex = 0;
 let questionStartTime = 0;
+
+// Track all three timing phases to prevent ghost loops
 let answerTimer = null;
+let nextQTimer = null;
+let countdownTimer = null;
+
 let currentTheme = 'default';
 const TIME_LIMIT = 10000; 
 
@@ -87,7 +92,8 @@ function nextQuestion() {
     answerTimer = setTimeout(() => {
         io.emit('showAnswer', { correctAnswer: qData.a, leaderboard: getLeaderboard() });
         currentQIndex++;
-        setTimeout(nextQuestion, 4000); 
+        // Track the pause between questions so it can be canceled if needed
+        nextQTimer = setTimeout(nextQuestion, 4000); 
     }, TIME_LIMIT);
 }
 
@@ -121,6 +127,9 @@ io.on('connection', (socket) => {
             const apiId = categoryIds[category];
             const response = await fetch(`https://opentdb.com/api.php?amount=10&category=${apiId}&difficulty=medium&type=multiple`);
             const apiData = await response.json();
+            
+            // Fail-safe: If the admin hit reset while the API was downloading, cancel the launch
+            if (!gameActive) return; 
 
             if (apiData.results && apiData.results.length > 0) {
                 questions = apiData.results.map(q => {
@@ -135,6 +144,7 @@ io.on('connection', (socket) => {
             }
         } catch (error) {
             console.log("API Error - Falling back to local backup questions.", error);
+            if (!gameActive) return; 
             questions = shuffleArray([...triviaDB[category]]).slice(0, 10); 
         }
 
@@ -143,7 +153,9 @@ io.on('connection', (socket) => {
         for (let id in players) players[id].score = 0;
         
         io.emit('startCountdown');
-        setTimeout(() => { nextQuestion(); }, 5000);
+        
+        // Track the initial 5-second countdown
+        countdownTimer = setTimeout(() => { nextQuestion(); }, 5000);
     });
 
     socket.on('submitAnswer', (answer) => {
@@ -167,10 +179,13 @@ io.on('connection', (socket) => {
 
     socket.on('resetServer', () => {
         gameActive = false;
+        
+        // Kill all active timers instantly
         clearTimeout(answerTimer);
-        // Completely clear all players
+        clearTimeout(nextQTimer);
+        clearTimeout(countdownTimer);
+        
         players = {};
-        // Emit a command for clients to force-refresh their page
         io.emit('kickAll');
         io.emit('updateLobby', [], gameActive);
     });
