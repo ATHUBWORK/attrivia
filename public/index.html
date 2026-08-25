@@ -22,7 +22,7 @@
         h1, h2 { color: var(--accent); transition: 0.5s; }
         input, button, select { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; color: var(--text-input); }
         input { width: 60%; }
-        select { width: 20%; cursor: pointer; }
+        select { width: 25%; cursor: pointer; }
         button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; transition: 0.2s; width: 84%; }
         button:hover { background: var(--accent-hover); }
         button:disabled { background: #555; cursor: not-allowed; color: white; }
@@ -53,6 +53,12 @@
                     <option value="🏎️">🏎️</option>
                     <option value="🎬">🎬</option>
                     <option value="💩">💩</option>
+                    <!-- 5 New Emojis -->
+                    <option value="🐶">🐶</option>
+                    <option value="🐱">🐱</option>
+                    <option value="🍕">🍕</option>
+                    <option value="🎸">🎸</option>
+                    <option value="👑">👑</option>
                 </select>
                 <input type="text" id="playerName" placeholder="Your Name" maxlength="12">
             </div>
@@ -83,7 +89,6 @@
     <script>
         const socket = io();
 
-        // Theme definitions
         const themes = {
             default: { '--bg-main': '#1a1a2e', '--bg-panel': '#16213e', '--accent': '#e94560', '--accent-hover': '#ff5277', '--text-main': 'white', '--bg-btn': '#0f3460', '--text-input': 'black' },
             hacker: { '--bg-main': '#0a0a0a', '--bg-panel': '#111111', '--accent': '#00ff00', '--accent-hover': '#33ff33', '--text-main': '#00ff00', '--bg-btn': '#003300', '--text-input': '#00ff00' },
@@ -196,18 +201,17 @@
             document.getElementById('gameArea').classList.add('hidden');
             document.getElementById('gameOver').classList.remove('hidden');
             if (players.length > 0) {
-                document.getElementById('winnerName').innerText = `Winner: ${players[0].emoji} ${players[0].name} with ${players[0].score} points!`;
+                const winnerElement = document.getElementById('winnerName');
+                winnerElement.innerText = `Winner: ${players[0].emoji} ${players[0].name} \nwith ${players[0].score} points!`;
+                // Make the winner text extra large
+                winnerElement.style.fontSize = '3em';
+                winnerElement.style.margin = '30px 0';
             }
         });
 
-        socket.on('forceLobby', () => {
-            document.getElementById('gameArea').classList.add('hidden');
-            document.getElementById('gameOver').classList.add('hidden');
-            document.getElementById('countdownText').classList.add('hidden');
-            document.getElementById('lobby').classList.remove('hidden');
-            let bar = document.getElementById('timerBar');
-            bar.style.transition = 'none';
-            bar.style.width = '100%';
+        // Hard reset listener kicks the player back to the login screen by forcing a page reload
+        socket.on('kickAll', () => {
+            location.reload();
         });
 
         socket.on('errorMsg', (msg) => alert(msg));
