@@ -39,7 +39,6 @@ const triviaDB = {
     ]
 };
 
-// Game State
 let players = {};
 let gameActive = false;
 let currentQuestions = [];
@@ -93,7 +92,7 @@ function nextQuestion() {
 }
 
 io.on('connection', (socket) => {
-    socket.emit('setTheme', currentTheme); // Send current theme to new connections
+    socket.emit('setTheme', currentTheme);
 
     if (Object.keys(players).length >= 25) {
         socket.emit('errorMsg', 'Lobby is full (Max 25 players).');
@@ -114,9 +113,7 @@ io.on('connection', (socket) => {
     socket.on('startGame', async (category) => {
         if (gameActive) return;
         gameActive = true;
-        
         io.emit('gameStarted'); 
-
         let questions = [];
 
         try {
@@ -143,14 +140,10 @@ io.on('connection', (socket) => {
 
         currentQIndex = 0;
         currentQuestions = questions;
-        
         for (let id in players) players[id].score = 0;
         
         io.emit('startCountdown');
-        
-        setTimeout(() => {
-            nextQuestion();
-        }, 5000); // Updated to 5 seconds
+        setTimeout(() => { nextQuestion(); }, 5000);
     });
 
     socket.on('submitAnswer', (answer) => {
@@ -175,12 +168,11 @@ io.on('connection', (socket) => {
     socket.on('resetServer', () => {
         gameActive = false;
         clearTimeout(answerTimer);
-        for (let id in players) {
-            players[id].score = 0;
-            players[id].answered = false;
-        }
-        io.emit('forceLobby');
-        io.emit('updateLobby', getLeaderboard(), gameActive);
+        // Completely clear all players
+        players = {};
+        // Emit a command for clients to force-refresh their page
+        io.emit('kickAll');
+        io.emit('updateLobby', [], gameActive);
     });
 
     socket.on('disconnect', () => {
