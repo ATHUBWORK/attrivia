@@ -45,7 +45,6 @@ let currentQuestions = [];
 let currentQIndex = 0;
 let questionStartTime = 0;
 
-// Track all three timing phases to prevent ghost loops
 let answerTimer = null;
 let nextQTimer = null;
 let countdownTimer = null;
@@ -57,8 +56,12 @@ function shuffleArray(array) {
     return array.sort(() => Math.random() - 0.5);
 }
 
+// Updated sorting logic: High score first, then earliest joiner
 function getLeaderboard() {
-    return Object.values(players).sort((a, b) => b.score - a.score);
+    return Object.values(players).sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.joinTime - b.joinTime; 
+    });
 }
 
 function decodeHTML(text) {
@@ -92,7 +95,6 @@ function nextQuestion() {
     answerTimer = setTimeout(() => {
         io.emit('showAnswer', { correctAnswer: qData.a, leaderboard: getLeaderboard() });
         currentQIndex++;
-        // Track the pause between questions so it can be canceled if needed
         nextQTimer = setTimeout(nextQuestion, 4000); 
     }, TIME_LIMIT);
 }
@@ -111,7 +113,8 @@ io.on('connection', (socket) => {
             name: playerData.name || 'Player', 
             emoji: playerData.emoji || '😎', 
             score: 0, 
-            answered: false 
+            answered: false,
+            joinTime: Date.now() // Track exact moment of entry
         };
         io.emit('updateLobby', getLeaderboard(), gameActive);
     });
@@ -128,7 +131,6 @@ io.on('connection', (socket) => {
             const response = await fetch(`https://opentdb.com/api.php?amount=10&category=${apiId}&difficulty=medium&type=multiple`);
             const apiData = await response.json();
             
-            // Fail-safe: If the admin hit reset while the API was downloading, cancel the launch
             if (!gameActive) return; 
 
             if (apiData.results && apiData.results.length > 0) {
@@ -153,8 +155,6 @@ io.on('connection', (socket) => {
         for (let id in players) players[id].score = 0;
         
         io.emit('startCountdown');
-        
-        // Track the initial 5-second countdown
         countdownTimer = setTimeout(() => { nextQuestion(); }, 5000);
     });
 
@@ -180,7 +180,6 @@ io.on('connection', (socket) => {
     socket.on('resetServer', () => {
         gameActive = false;
         
-        // Kill all active timers instantly
         clearTimeout(answerTimer);
         clearTimeout(nextQTimer);
         clearTimeout(countdownTimer);
