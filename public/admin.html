@@ -60,6 +60,7 @@
                 <option value="Animals">Animal Trivia</option>
                 <option value="Car">Car Trivia</option>
                 <option value="Movie">Movie Trivia</option>
+                <option value="Computers">Science: Computers</option>
             </select>
             <button class="launch-btn" onclick="startGame()">Launch Game Now</button>
 
@@ -116,7 +117,6 @@
             });
         }
 
-        // Listens for drops, additions, and score changes dynamically
         socket.on('updateLobby', (players) => updateLeaderboard(players));
         socket.on('showAnswer', (data) => updateLeaderboard(data.leaderboard));
         
