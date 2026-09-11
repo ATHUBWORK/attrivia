@@ -36,6 +36,13 @@ const triviaDB = {
         { q: "Which actor played the character of Neo in 'The Matrix'?", a: "Keanu Reeves", options: ["Keanu Reeves", "Tom Cruise", "Brad Pitt", "Will Smith"] },
         { q: "What 1994 film won Best Picture and starred Tom Hanks?", a: "Forrest Gump", options: ["Forrest Gump", "Shawshank Redemption", "Pulp Fiction", "Cast Away"] },
         { q: "In 'The Godfather', what is the name of the family patriarch?", a: "Vito Corleone", options: ["Vito Corleone", "Michael Corleone", "Sonny Corleone", "Fredo Corleone"] }
+    ],
+    Computers: [
+        { q: "What does CPU stand for?", a: "Central Processing Unit", options: ["Central Processing Unit", "Central Process Unit", "Computer Personal Unit", "Central Processor Unit"] },
+        { q: "In web design, what does CSS stand for?", a: "Cascading Style Sheets", options: ["Cascading Style Sheets", "Counter Strike: Source", "Corrective Style Sheet", "Computer Style Sheet"] },
+        { q: "What is the most common operating system in the world?", a: "Android", options: ["Android", "Windows", "iOS", "Linux"] },
+        { q: "Which programming language is represented by a coffee cup logo?", a: "Java", options: ["Java", "Python", "C++", "Ruby"] },
+        { q: "What does RAM stand for?", a: "Random Access Memory", options: ["Random Access Memory", "Read Access Memory", "Run Access Memory", "Rapid Access Memory"] }
     ]
 };
 
@@ -56,7 +63,6 @@ function shuffleArray(array) {
     return array.sort(() => Math.random() - 0.5);
 }
 
-// Updated sorting logic: High score first, then earliest joiner
 function getLeaderboard() {
     return Object.values(players).sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
@@ -114,7 +120,7 @@ io.on('connection', (socket) => {
             emoji: playerData.emoji || '😎', 
             score: 0, 
             answered: false,
-            joinTime: Date.now() // Track exact moment of entry
+            joinTime: Date.now() 
         };
         io.emit('updateLobby', getLeaderboard(), gameActive);
     });
@@ -126,7 +132,8 @@ io.on('connection', (socket) => {
         let questions = [];
 
         try {
-            const categoryIds = { 'Sports': 21, 'Car': 28, 'Movie': 11, 'Animals': 27 };
+            // Updated mapping logic to include Computers (Category ID 18)
+            const categoryIds = { 'Sports': 21, 'Car': 28, 'Movie': 11, 'Animals': 27, 'Computers': 18 };
             const apiId = categoryIds[category];
             const response = await fetch(`https://opentdb.com/api.php?amount=10&category=${apiId}&difficulty=medium&type=multiple`);
             const apiData = await response.json();
