@@ -17,7 +17,7 @@
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; text-align: center; transition: background 0.5s; display: flex; height: 100vh; overflow: hidden; }
         
-        /* New Sidebar Layout */
+        /* Sidebar Layout */
         #sidebar { width: 280px; min-width: 280px; background: var(--bg-panel); border-right: 3px solid var(--accent); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; transition: 0.5s; z-index: 100; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
         #sidebar h2 { margin-top: 0; padding-bottom: 15px; border-bottom: 1px solid var(--bg-btn); }
         #leaderboard { display: flex; flex-direction: column; gap: 8px; }
@@ -42,6 +42,24 @@
         .hidden { display: none !important; }
         #timerBar { height: 10px; background: var(--accent); width: 100%; transition: width 0.1s linear; margin-top: 20px; border-radius: 5px; }
         .input-group { display: flex; justify-content: center; gap: 10px; align-items: center; }
+
+        /* Mobile Layout */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; overflow-y: auto; }
+            .main-content { order: 1; overflow-y: visible; padding: 10px; min-height: 60vh; align-items: flex-start; }
+            #sidebar { order: 2; width: 100%; min-width: 100%; border-right: none; border-top: 3px solid var(--accent); overflow-y: visible; height: auto; box-shadow: 0 -4px 15px rgba(0,0,0,0.3); }
+            
+            .container { padding: 15px; margin: 10px auto; }
+            .grid { grid-template-columns: 1fr; gap: 8px; }
+            .option-btn { height: auto; min-height: 55px; padding: 10px; font-size: 16px; }
+            
+            .input-group select { width: 30%; }
+            .input-group input { width: 65%; }
+            button { width: 100%; }
+            
+            h1 { font-size: 1.8em; }
+            #countdownText { font-size: 4rem !important; margin: 10px 0 !important; }
+        }
     </style>
 </head>
 <body>
@@ -81,7 +99,7 @@
             </div>
             <div id="waitingMsg" class="hidden">
                 <h3 style="color: var(--accent);">You are in! Waiting for the host to start the game...</h3>
-                <h2 style="color: var(--accent-hover); background: var(--bg-btn); padding: 10px; border-radius: 5px;">⚠️ DO NOT REFRESH OR CLOSE YOUR BROWSER ⚠️</h2>
+                <h2 style="color: var(--accent-hover); background: var(--bg-btn); padding: 10px; border-radius: 5px; font-size: 1.1em;">⚠️ DO NOT REFRESH OR CLOSE YOUR BROWSER ⚠️</h2>
             </div>
         </div>
 
@@ -128,7 +146,6 @@
             
             players.forEach((p, index) => {
                 let extraClass = '';
-                // Highlight the 1st place player ONLY if they have actually scored points
                 if (index === 0 && p.score > 0) {
                     extraClass = 'first-place';
                 }
