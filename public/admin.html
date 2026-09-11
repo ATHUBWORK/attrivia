@@ -15,42 +15,58 @@
             --text-input: black;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: var(--text-main); text-align: center; padding: 20px; transition: 0.5s; }
-        .container { max-width: 500px; margin: auto; padding: 30px; background: var(--bg-panel); border-radius: 10px; border: 2px solid var(--accent); transition: 0.5s; }
-        select, button { padding: 15px; margin: 15px 0; width: 90%; font-size: 18px; border-radius: 5px; color: var(--text-input); }
-        .launch-btn { background: var(--accent); color: white; font-weight: bold; cursor: pointer; border: none; }
-        .launch-btn:hover { background: var(--accent-hover); }
-        .reset-btn { background: #ffaa00; color: #1a1a2e; font-weight: bold; cursor: pointer; border: none; margin-top: 30px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; transition: 0.5s; }
         
-        #leaderboard { background: var(--bg-panel); padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; border-bottom: 3px solid var(--accent); margin-bottom: 20px; border-radius: 10px; transition: 0.5s;}
-        .player-score { background: var(--bg-btn); padding: 5px 15px; border-radius: 5px; font-weight: bold; color: var(--text-main); transition: 0.5s;}
+        /* Sidebar Layout */
+        #sidebar { width: 280px; min-width: 280px; background: var(--bg-panel); border-right: 3px solid var(--accent); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; transition: 0.5s; z-index: 100; box-shadow: 4px 0 15px rgba(0,0,0,0.3); text-align: left;}
+        #sidebar h2 { margin-top: 0; padding-bottom: 15px; border-bottom: 1px solid var(--bg-btn); text-align: center; }
+        #leaderboard { display: flex; flex-direction: column; gap: 8px; }
+        
+        .player-score { background: var(--bg-btn); padding: 10px 15px; border-radius: 5px; font-weight: bold; color: var(--text-main); transition: 0.3s; display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
+        .first-place { transform: scale(1.05); background: #ffaa00; color: #1a1a2e; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); font-size: 18px; margin-bottom: 5px; z-index: 2; }
+        
+        /* Main Content Area */
+        .main-content { flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        
+        .container { max-width: 500px; width: 100%; padding: 30px; background: var(--bg-panel); border-radius: 10px; border: 2px solid var(--accent); transition: 0.5s; text-align: center; }
+        select, button { padding: 15px; margin: 15px 0; width: 90%; font-size: 18px; border-radius: 5px; color: var(--text-input); }
+        .launch-btn { background: var(--accent); color: white; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;}
+        .launch-btn:hover { background: var(--accent-hover); }
+        .reset-btn { background: #ffaa00; color: #1a1a2e; font-weight: bold; cursor: pointer; border: none; margin-top: 30px; transition: 0.2s;}
+        .reset-btn:hover { background: #e69900; }
     </style>
 </head>
 <body>
-    <div id="leaderboard"><em>Waiting for players...</em></div>
 
-    <div class="container">
-        <h1 style="color: var(--accent);">Admin Control Panel</h1>
-        
-        <select id="themeSelect" onchange="changeTheme()">
-            <option value="default">Theme: Dark Mode (Default)</option>
-            <option value="hacker">Theme: Hacker (Neon Green)</option>
-            <option value="light">Theme: Light Mode (Bright)</option>
-        </select>
-        
-        <hr style="border-color: var(--bg-btn); margin: 20px 0;">
+    <div id="sidebar">
+        <h2 style="color: var(--accent);">Live Leaderboard</h2>
+        <div id="leaderboard"><em style="text-align: center; display: block; color: #888;">Waiting for players...</em></div>
+    </div>
 
-        <select id="categorySelect">
-            <option value="Sports">Sports Trivia</option>
-            <option value="Animals">Animal Trivia</option>
-            <option value="Car">Car Trivia</option>
-            <option value="Movie">Movie Trivia</option>
-        </select>
-        <button class="launch-btn" onclick="startGame()">Launch Game Now</button>
+    <div class="main-content">
+        <div class="container">
+            <h1 style="color: var(--accent);">Admin Control Panel</h1>
+            
+            <select id="themeSelect" onchange="changeTheme()">
+                <option value="default">Theme: Dark Mode (Default)</option>
+                <option value="hacker">Theme: Hacker (Neon Green)</option>
+                <option value="light">Theme: Light Mode (Bright)</option>
+            </select>
+            
+            <hr style="border-color: var(--bg-btn); margin: 20px 0;">
 
-        <hr style="border-color: var(--bg-btn); margin: 30px 0;">
+            <select id="categorySelect">
+                <option value="Sports">Sports Trivia</option>
+                <option value="Animals">Animal Trivia</option>
+                <option value="Car">Car Trivia</option>
+                <option value="Movie">Movie Trivia</option>
+            </select>
+            <button class="launch-btn" onclick="startGame()">Launch Game Now</button>
 
-        <button class="reset-btn" onclick="resetGame()">Kick All & Reset Server</button>
+            <hr style="border-color: var(--bg-btn); margin: 30px 0;">
+
+            <button class="reset-btn" onclick="resetGame()">Kick All & Reset Server</button>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -81,15 +97,26 @@
         function updateLeaderboard(players) {
             const lb = document.getElementById('leaderboard');
             if (players.length === 0) {
-                lb.innerHTML = '<em>Waiting for players...</em>';
+                lb.innerHTML = '<em style="text-align: center; display: block; color: #888;">Waiting for players...</em>';
                 return;
             }
             lb.innerHTML = '';
-            players.forEach(p => {
-                lb.innerHTML += `<div class="player-score">${p.emoji} ${p.name}: ${p.score}</div>`;
+            
+            players.forEach((p, index) => {
+                let extraClass = '';
+                if (index === 0 && p.score > 0) {
+                    extraClass = 'first-place';
+                }
+                
+                lb.innerHTML += `
+                    <div class="player-score ${extraClass}">
+                        <span>${p.emoji} ${p.name}</span>
+                        <span>${p.score}</span>
+                    </div>`;
             });
         }
 
+        // Listens for drops, additions, and score changes dynamically
         socket.on('updateLobby', (players) => updateLeaderboard(players));
         socket.on('showAnswer', (data) => updateLeaderboard(data.leaderboard));
         
